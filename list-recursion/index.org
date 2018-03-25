@@ -1,0 +1,221 @@
+#+TITLE: Assignment: First order functions
+#+EXCLUDE_TAGS: solution
+#+PROPERTY: session *scheme*
+#+PROPERTY: results output
+
+# ------------------------------
+#  uncomment to tangle solution
+# #+PROPERTY: tangle main.rkt
+
+# uncomment to suppress tangling
+#+PROPERTY: tangle no
+# ------------------------------
+
+#+PROPERTY: exports code
+#+TAGS: boilerplate(b) notes(n) solution(s)
+#+EXCLUDE_TAGS: boilerplate solution noexport
+#+SETUPFILE: ../../org-templates/level-2.org
+
+* Problems
+Design Programs for each of the following problems.
+** Require statements 											:boilerplate:
+#+NAME: test_infra
+#+BEGIN_SRC scheme :session no
+#lang racket
+(require rackunit)
+#+END_SRC
+** =vector-sum=
+*** Problem
+   Write a function =vector-sum= which takes a vector =v= of
+   numbers, and returns the sum of all elements of =v=.
+*** Solution 							   :solution: 
+#+BEGIN_SRC scheme 
+;;; uses recursion on nats
+(define vector-sum
+  (lambda (v)
+    (let ([n (vector-length v)])
+      (vector-sum-length v n))))
+
+(define vector-sum-length
+  (lambda (v n)
+    (if (zero? n)
+        0
+        (+ (vector-ref v (- n 1))
+           (vector-sum-length v (- n 1))))))
+#+END_SRC
+
+*** Test cases
+#+NAME: vector_sum_tests
+#+BEGIN_SRC scheme 
+(check-equal? (vector-sum #()) 0 "test 1")
+(check-equal? (vector-sum #(1 2 3)) 6 "test 2")
+(check-equal? (vector-sum #(-1 2 3)) 4 "test 3")
+#+END_SRC
+
+** =list-sum=
+*** Problem
+   Write a function called =list-sum= which takes a list
+   =ln= of numbers and returns the sum of all the numbers in
+   =ln=.
+*** Solution													   :solution:
+#+BEGIN_SRC scheme 
+;;; uses recursion on lists
+(define list-sum
+  (lambda (ln)
+    (if (null? ln)
+        0
+        (+ (first ln) (list-sum (rest ln))))))
+#+END_SRC
+
+*** Test cases
+#+NAME: list_sum_tests
+#+BEGIN_SRC scheme
+(check-equal? (list-sum '()) 0 "test 1")
+(check-equal? (list-sum '(1 2)) 3 "test 2")
+(check-equal? (list-sum '(1 2 8 4)) 15 "test 3")
+#+END_SRC
+
+** =list-length=
+*** Problem
+   Write a function called =list-length= which takes
+   a list and returns the number of elements in it.
+*** Solution                                  :solution: 
+#+BEGIN_SRC scheme 
+;;; uses recursion on lists
+(define list-length
+  (lambda (lst)
+    (if (null? lst)
+        0
+        (+ 1 (list-length (rest lst))))))
+
+    (check-equal? (list-length '()) 0 "test 1")
+    (check-equal? (list-length '(1 2 a)) 3 "test 2")
+    (check-equal? (list-length '(1 2 (1 2 3))) 3 "test 3")
+    (check-equal? (list-length '((1 2) (3 4) (5 6))) 3 "test 4")
+#+END_SRC
+    
+*** Test cases
+#+NAME: list_length_tests
+#+BEGIN_SRC scheme 
+(check-equal? (list-length '()) 0 "test 1")
+(check-equal? (list-length '(1 2 a)) 3 "test 2")
+(check-equal? (list-length '(1 2 (1 2 3))) 3 "test 3")
+(check-equal? (list-length '((1 2) (3 4) (5 6))) 3 "test 4")
+#+END_SRC
+
+** =member?=
+*** Problem
+   Write a function named =member?= which takes a list and a
+   value and returns true if the value is equal to any
+   element of the list, false otherwise.
+
+*** Solution                                  :solution: 
+#+BEGIN_SRC scheme 
+(define member?
+  (lambda (ls n)
+    (cond
+      [(null? ls) #f]
+      [(equal? (first ls) n) #t]
+      [else (member? (rest ls) n)])))
+#+END_SRC
+*** Test cases
+#+NAME: member_tests
+#+BEGIN_SRC scheme
+(check-equal? (member? '() 'a) #f "test 1")
+(check-equal? (member? '(a b c) 'a) #t "test 2")
+(check-equal? (member? '("a" "b" "c") 'a) #f "test 3")
+(check-equal? (member? '(1 2 3 (5 6)) '(5 6)) #t "test 4")
+#+END_SRC
+
+** =map-sqr=
+*** Problem
+   Write a function named =map-sqr= which takes a list of
+   numbers and returns a list whose elements are squares of
+   the corresponding elements of argument list.
+
+*** Solution                                  :solution: 
+#+BEGIN_SRC scheme 
+(define map-sqr
+  (lambda (ls)
+    (cond
+      [(empty? ls) '()]
+      [else 
+           (cons
+                (sqr (first ls))
+                (map-sqr (rest ls)))]
+      )))
+#+END_SRC
+    
+*** Test cases
+#+NAME: map_sqr_tests
+#+BEGIN_SRC scheme
+(check-equal? (map-sqr '(1 2 3 4)) '(1 4 9 16) "test-1")
+(check-equal? (map-sqr '(1 2/3 3.0 3+4i)) '(1 4/9 9.0 -7+24i) "test 2")
+(check-equal? (map-sqr '()) '() "test 3")
+#+END_SRC
+
+*  Tests            :noexport:
+All the test cases are collected below: 
+#+BEGIN_SRC scheme :tangle tests.rkt :eval no :noweb yes
+<<test_infra>>
+(require "main.rkt")
+<<vector_sum_tests>>
+<<list_sum_tests>>
+<<list_length_tests>>
+<<member_tests>>
+<<map_sqr_tests>>
+#+END_SRC
+
+* Instructions
+** Providing functions
+
+   Once you've written these programs, you need to 'provide'
+   them so that they can be evaluated by us. Add the
+   following at the top of your file.
+   #+BEGIN_EXAMPLE
+   (provide
+       vector-sum
+	   list-sum
+	   list-length
+	   member?
+	   map-sqr
+       )
+   #+END_EXAMPLE
+
+** Naming convention
+
+   - 1. Use the same names of functions as mentioned in the
+     questions.
+
+   - 2. All the questions should be in the same file, and
+     the file is to be called "main.rkt".
+      
+** Directory Structure
+
+  - 1. Each student has access to a repository whose name is
+    the roll-number of the student. 
+
+
+  - 2. In your GitLab repository, you *must* follow the
+    directory structure as below:
+
+     #+BEGIN_EXAMPLE
+     -------------------------
+     <roll-no>
+     |
+     `----assignment-solutions
+          |
+          `--- assignment-1
+               |--- main.rkt
+     ------------------------
+     #+END_EXAMPLE
+
+** Strict Adherence
+
+If you do not adhere to this directory structure and naming,
+you *will* lose marks. The evaluation of this homework is
+*automated*.  So, please make sure that you don't miss
+hyphens and upper case letters in file, directory and
+function names.  No requests for regrading of your homework
+will be entertained if the directory structure or naming
+convention is not followed!

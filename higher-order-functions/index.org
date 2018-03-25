@@ -1,0 +1,615 @@
+#+TITLE: Assignment: Higher order functions
+#+EXCLUDE_TAGS: solution
+#+PROPERTY: session *scheme*
+#+PROPERTY: results output
+
+# ------------------------------
+#  uncomment to tangle solution
+# #+PROPERTY: tangle main.rkt
+
+# uncomment to suppress tangling
+#+PROPERTY: tangle no
+# ------------------------------
+
+#+PROPERTY: exports code
+#+TAGS: boilerplate(b) notes(n) solution(s)
+#+EXCLUDE_TAGS: boilerplate solution noexport
+
+#+SETUPFILE: ../../org-templates/level-2.org
+
+* Instructions on structuring your solution into =main.org=
+Design Programs for each of the following problems.  Your
+solutions should be in the form of an /org file/ that
+contains the solutions.  The narrative should /describe/, in
+English, your solution and why you think it works.  The
+narrative should be interspersed with code that can then be
+extracted (/tangled/) and run.
+
+Please see the sample [[../../labs/emacs-orgmode/literate-racket.txt][literate programming template]] for
+writing your racket programs in org-mode file.  (you may
+want to copy the template into a file called =main.org=).
+
+* Problem 1: =reduce=
+** Statement
+
+Write a function =reduce= that takes a binary function =f=,
+an initial value =init= and a list =ls= and reduces the list to
+an answer.  See the example below to understand how =reduce=
+works. 
+
+#+BEGIN_SRC example
+(reduce + 0 '(1 2 3 4 5 6)) = 
+(reduce + 1 '(2 3 4 5 6)) =
+(reduce + 3 '(3 4 5 6)) =
+(reduce + 6 '(4 5 6)) =
+(reduce + 10 '(5 6)) =
+(reduce + 15 '(6)) = 
+(reduce + 21 '()) =
+21
+#+END_src
+Write your own reduce using the below template.
+
+#+BEGIN_SRC scheme
+    ;;; reduce : [procedure?, value?, (listof value?)] -> value?
+    (define reduce
+        (lambda (f init ls)
+            ;;; Your code goes here.))
+#+END_SRC
+
+** Solution														   :solution:
+#+NAME: reduce_solution
+#+BEGIN_SRC scheme 
+(define reduce
+  (lambda (op init ls)
+    (if (null? ls)
+        init
+        (reduce op (op (first ls) init) (rest ls)))))
+#+END_SRC
+
+** Test cases
+#+NAME: reduce_tests
+#+BEGIN_SRC scheme
+(define binary-and 
+  (lambda (x y)
+    (and x y)))
+
+(define (all-satisfy predicate ls) 
+  (reduce binary-and #t (map predicate ls)))
+
+(check-equal?  (all-satisfy even? '(2 3 4)) #f "All-even-test #f")
+(check-equal?  (all-satisfy even? '(2 4 6)) #t "All-even-test #t")
+(check-equal?  (all-satisfy boolean? '(#t #f 6)) #f "All-boolean-test #f")
+(check-equal?  (all-satisfy boolean? '(#t #f #t)) #t "All-boolean-test #t")
+
+#+END_SRC
+
+* Problem 2: =reverse= 
+** Statement
+
+Reverse a list using  =reduce= defined above.
+
+#+BEGIN_SRC scheme
+    ;;; reverse : (listof value?) -> (listof value?)
+#+END_SRC
+
+Hint: Use cons. See how varying the order in the binary operation of reduce
+affects your output.
+
+** Solution														   :solution:
+#+NAME: reverse_solution
+#+BEGIN_SRC scheme
+(define reverse
+  (lambda (ls)
+    (reduce cons '() ls)))
+#+END_SRC
+
+** Test cases
+#+NAME: reverse_tests
+#+BEGIN_SRC scheme
+(check-equal? (reverse '(a b c)) '(c b a) "Reverse (a b c)")
+(check-equal? (reverse '(1 2 3 4)) '(4 3 2 1) "Reverse (1 2 3 4)")
+#+END_SRC
+#
+
+* Problem 3: =list-length=
+** Statement
+
+This time, find the length of a given list using the reduce
+defined above.
+
+#+BEGIN_SRC scheme
+    ;;; list-length : (listof value?) -> nat?
+#+END_SRC
+** Solution														   :solution:
+#+NAME: list_length_solution
+#+BEGIN_SRC scheme
+(define list-length
+  (lambda (ls)
+    (reduce (lambda (x y) (add1 y))  0 ls)))
+#+END_SRC
+** Test cases
+#+NAME: list_length_tests
+#+BEGIN_SRC scheme
+(check-equal? (list-length '(a b c)) 3 "List Length (a b c)")
+(check-equal? (list-length '(1 2 3 4)) 4 "List Length (1 2 3 4)")
+#+END_SRC
+#
+
+* Problem 4: =compose=
+** Statement
+    Recall the function =compose= done in class.  =compose=
+    takes two functions as arguments and returns their
+    composition.  Implement =compose= again here. 
+#+BEGIN_SRC scheme
+;;; compose: [procedure?, procedure?] -> procedure?
+#+END_SRC
+** Solution														   :solution:
+#+NAME: compose_binary_solution
+#+BEGIN_SRC scheme 
+
+;(define compose-binary
+; (lambda (f g)
+;    (lambda args
+;      (f (apply g args)))))
+
+; Alternate solution
+(define compose-binary
+  (lambda (f g)
+    (lambda (x) 
+      (f (g x)))))
+
+#+END_SRC
+
+** Test Cases
+#+NAME: compose_binary_tests
+#+BEGIN_SRC scheme
+(define next-even? (compose even? add1))
+(check-equal? (next-even? 4) #f "compose-t1")
+(check-equal? (next-even? 5) #t "compose-t2")
+#+END_SRC
+
+* Problem 5: =compose*=
+** Statement
+
+Use =compose= and =reduce= above to create =compose*=, which
+takes in a list of functions as argument (see example) and
+returns the composition of all functions. 
+
+*Hint:* Use =lambda args= instead of =lambda (arg1 arg2
+...)= to obtain the arguments as a list.
+
+#+BEGIN_SRC scheme :eval no
+    ; compose* : (listof procedure?) -> procedure?
+(define compose*
+  (lambda fns  ; fns is bound to the list of actual (zero or more) arguments
+    ...  ; your code goes here.
+))
+#+END_SRC
+
+** Solution														   :solution:
+#+NAME: compose_solution
+#+BEGIN_SRC scheme 
+(define compose*
+  (lambda fs 
+    (reduce compose identity (reverse fs))))
+#+END_SRC
+
+
+** Test cases
+#+NAME: compose_tests
+#+BEGIN_SRC scheme
+(define mul2
+ (lambda (x) (* x 2)))
+
+(define f (compose* add1 mul2 sub1))
+(check-equal? (f 4) 7 "f 4")
+(check-equal? (f 7) 13 "f 7")
+#+END_SRC
+
+** COMMENT =reduce-curried=
+
+You've implemented a few functions written using reduce
+above, with changes only in the binary operation and the
+initial value.
+
+It's therefore convenient to write a curried version of
+reduce, which accepts a binary operation and an initial
+value, and returns a function which takes in a list and
+gives the final result.
+
+#+BEGIN_SRC scheme
+    ; reduce : [procedure?, value?, (listof value?)] -> value?
+    ; reduce-curried: [procedure?, value?] -> [(listof value?) -> value?]
+#+END_SRC
+
+Write your own curried version of reduce as =reduce-curried=.
+
+*** Solution                                                       :solution: 
+#+NAME: reduce_curried_solution
+#+BEGIN_SRC scheme 
+(define reduce-curried
+  (lambda (op init)
+    (lambda (ls)
+      (if (null? ls)
+          init
+          ((reduce-curried op (op (first ls) init)) (rest ls))))))
+
+(define sum (reduce-curried + 0))
+(define produce (reduce-curried * 1))
+#+END_SRC
+
+*** Test cases
+#+NAME: reduce_curried_tests
+#+BEGIN_SRC scheme
+(define sum (reduce-curried + 0))
+(define product (reduce-curried * 1))
+(check-equal? (sum '(1 2 3 4 5 6)) 21 "Reduce-curried: sum-test")
+(check-equal? (product '(4 5 6)) 120 "Reduce-curried: product-test")
+#+END_SRC
+    
+* Problem 6: =list-map=
+** Statement
+Generate the function =list-map= using =reduce=.  =list-map=
+takes a function and a list as arguments and applies the
+function to every element of the list.
+
+#+BEGIN_SRC scheme
+    ; list-map : [procedure?, (listof value?)] -> (listof value?)
+#+END_SRC
+
+** Solution														   :solution:
+#+NAME: list_map_solution
+#+BEGIN_SRC scheme 
+(define list-map
+  (lambda (f ls)
+    (reduce 
+     (lambda (u acc)
+       (cons (f u) acc))
+     '()
+     (reverse ls))))
+#+END_SRC
+
+** Test cases
+#+NAME: list_map_tests
+#+BEGIN_SRC scheme
+(check-equal? (list-map add1 '(1 2 3 4)) '(2 3 4 5) "test 1")
+(check-equal? (list-map boolean? '(1 #t #f 4)) '(#f #t #t #f) "test 2")
+#+END_SRC
+
+* Problem 7: Data type: =shape=
+** Statement
+
+Define the data types (constructors) =triangle= (for
+equilateral triangles) , =square= and =circle=.  =triangle=
+and =square= take in a side. =circle= takes in radius.
+
+Also define type predicates =triangle?=, =square?= and
+=circle?=. 
+
+Now define =shape?= which checks if the given value is a
+circle, square or triangle.
+
+Now define functions =area= and =perimeter= which compute
+the area and perimeter of the respective shapes. 
+
+You should create one function each for =area= and
+=perimeter= which works for all datatypes.
+
+#+BEGIN_SRC scheme
+; area : shape? -> real?
+; perimeter: shape? -> real?
+#+END_SRC
+
+** Test cases
+#+NAME: dt_shape_tests
+#+BEGIN_SRC scheme
+(define equilateral-triangle-area
+  (lambda (side)
+    (* (/ (sqrt 3) 4) side side)))
+
+(define square-area
+  (lambda (side)
+    (* side side)))
+
+(define circle-area
+  (lambda (radius)
+    (* pi radius radius)))
+
+
+(define square-perimeter
+    (lambda (side)
+        (* 4 side)))
+
+(define equilateral-triangle-perimeter
+    (lambda (side)
+        (* 3 side)))
+
+(define circle-perimeter
+    (lambda (radius)
+        (* 2 pi radius)))
+
+
+(check-equal? (area (triangle 3)) (equilateral-triangle-area 3) "Triangle
+area test")
+
+(check-equal? (area (square 4)) (square-area 4) "Square area test")
+(check-equal? (area (circle 4)) (circle-area 4) "Circle atrea test")
+
+(check-equal? (perimeter (triangle 3)) (equilateral-triangle-perimeter 3) "Triangle
+perimeter test")
+
+(check-equal? (perimeter (square 4)) (square-perimeter 4) "Square perimeter test")
+(check-equal? (perimeter (circle 4)) (circle-perimeter 4) "Circle perimeter test")
+#+END_SRC
+
+** Solution														   :solution:
+#+NAME: dt_shape_solution
+#+BEGIN_SRC scheme   
+(define square
+  (lambda (s)
+    (list 'square s)))
+
+(define square?
+  (lambda (s)
+    (and (eq? (first s) 'square) (number? (second s)))))
+
+(define triangle
+  (lambda (s)
+  (list 'triangle s)))
+
+(define triangle?
+  (lambda (s)
+    (and (eq? (first s) 'triangle) (number? (second s)))))
+
+(define circle
+  (lambda (r)
+  (list 'circle r)))
+
+(define circle?
+  (lambda (s)
+    (and (eq? (first s) 'circle) (number? (second s)))))
+
+(define shape?
+  (or/c triangle? square? circle?))
+
+(define area
+  (lambda (s)
+    (cond
+      [(triangle? s) (* (/ (sqrt 3) 4) (second s) (second s))]
+      [(square? s) (* (second s) (second s))]
+      [(circle? s) (* pi (second s) (second s))]
+      [else (error "Unknown datatype")])))
+
+(define perimeter
+  (lambda (s)
+    (cond
+      [(triangle? s) (* 3 (second s))]
+      [(circle? s) (* 2 pi (second s))]
+      [(square? s) (* 4 (second s))]
+      [else (error "Unknown datatype")])))
+
+#+END_SRC
+
+* Problem 8: Data type: =point=
+
+** Statement
+
+Define the datatypes =polar= and =rectangular= for two
+dimensional points.  Now create functions to convert from
+one to another.  Make sure you define predicates to check
+for polar, rectangular and point.
+
+Define and  export all of the following functions:
+
+#+BEGIN_SRC scheme
+;;; polar: [real? real?] -> polar?
+;;; rectangular: [real? real?] -> rectangular?
+;;; point?: any/c -> boolean?
+;;; polar-to-rectangular: polar? -> rectangular?
+;;; rectangular-to-polar: rectangular? -> polar?
+;;; point-equal? : [point? point?] -> boolean? ; within 0.001 of each
+;;; coordinate.
+
+;;; get-x: point? -> real?
+;;; get-y: point? -> real?
+;;; get-r: point? -> real?
+;;; get-t: point? -> real?
+#+END_SRC
+
+Note that =point-equal?= and the =get= functions take points
+which could be polar or rectangular.
+
+** Solution														   :solution:
+#+NAME: dt_point_solution
+#+BEGIN_SRC scheme
+  (define polar
+    (lambda (r t)
+      (list 'polar r t)))
+
+  (define polar?
+    (lambda (v)
+      (and (list? v)
+           (= (length v) 3)
+           (eq? (first v) 'polar)
+           (real? (second v))
+           (real? (third v)))))
+
+
+  (define rectangular?
+    (lambda (v)
+      (and (list? v)
+           (= (length v) 3)
+           (eq? (first v) 'rectangular)
+           (real? (second v))
+           (real? (third v)))))
+
+  (define point?
+    (or/c polar? rectangular?))
+
+  (define EPS 0.001)
+
+  (define float-equal?
+    (lambda (x y)
+      (< (abs (- x y)) EPS)))
+
+  (define rectangular-point-equal?
+    (lambda (p q)
+      (and
+       (float-equal? (get-x p) (get-x q))
+       (float-equal? (get-y p) (get-y q)))))
+
+  (define point-equal?
+    (lambda (p q)
+      (cond
+       [(and (rectangular? p) (rectangular? q)) (rectangular-point-equal? p q)]
+       [(and (rectangular? p) (polar? q)) (rectangular-point-equal? p (polar-to-rectangular q))]
+       [(and (polar? p) (rectangular? q)) (rectangular-point-equal? (polar-to-rectangular p) q)]
+       [else (rectangular-point-equal? (polar-to-rectangular p) (polar-to-rectangular q))])))
+        
+                               
+  (define rectangular
+    (lambda (x y)
+      (list 'rectangular x y)))
+
+  (define get-x
+    (lambda (p)
+      (second p)))
+
+  (define get-y
+    (lambda (p)
+      (third p)))
+
+  (define get-r
+    (lambda (p)
+      (second p)))
+
+  (define get-t
+    (lambda (p)
+      (third p)))
+
+  (define rectangular-to-polar
+    (lambda (p)
+      (let [(x (get-x p)) (y (get-y p))]
+        (polar (sqrt (+ (* x x ) (* y y))) (atan x y)))))
+
+  (define polar-to-rectangular
+    (lambda (p)
+      (let [(r (get-r p)) (t (get-t p))]
+        (rectangular (* r (sin t)) (* r (cos t))))))
+#+END_SRC
+
+** Test cases
+#+NAME: dt_point_tests
+#+BEGIN_SRC scheme
+  (define test-point (rectangular 3.0 4.0))
+  (check-equal? (get-x test-point) 3.0 "get-x test")
+  (check-equal? (get-y test-point) 4.0 "get-y test")
+  (check-equal?
+   (point-equal?
+    (polar-to-rectangular (rectangular-to-polar test-point))
+    test-point)
+   #t
+   "conversion-equality test")
+
+  (define polar-test-point (polar 5.0 2.0))
+  (check-equal? (get-r polar-test-point) 5.0 "get-r test")
+  (check-equal? (get-t polar-test-point) 2.0 "get-t test")
+  (check-equal?
+   (point-equal?
+    (rectangular-to-polar (polar-to-rectangular polar-test-point))
+    polar-test-point)
+   #t
+   "polar conversion-equality test")
+#+END_SRC
+
+* Tangling Test cases                                              :noexport:
+All the test cases are collected into =tests.rkt=.
+#+BEGIN_SRC scheme :tangle tests.rkt :eval no :noweb yes
+#lang racket
+(require rackunit)
+(require racket/list)
+(require "main.rkt")
+<<reduce_tests>>
+<<compose_binary_tests>>
+<<compose_tests>>
+<<reverse_tests>>
+<<list_length_tests>>
+<<reduce_curried_tests>>
+<<list_map_tests>>
+<<dt_shape_tests>>
+<<dt_point_tests>>
+#+END_SRC
+
+* Problemsetter's code 						   :noexport:
+
+#  Always keep :tangle to no! Otherwise, the make will
+# tangle the solution and ./export.sh will ship the solution
+# to the server.  You don't want to leak the solutions!
+
+#+BEGIN_SRC scheme :tangle no :eval no :noweb yes  
+#lang racket
+(require rackunit)
+(provide (all-defined-out))
+<<main_infra>>
+<<reduce_solution>>
+<<compose_binary_solution>>
+<<compose_solution>>
+<<reverse_solution>>
+<<list_length_solution>>
+<<reduce_curried_solution>>
+<<list_map_solution>>
+<<dt_shape_solution>>
+<<dt_point_solution>>
+#+END_SRC
+
+* Instructions
+** Exporting functions
+
+   Once you've written these programs, you need to export
+   them so that they can be evaluated by us.  If you don't
+   provide the definitions, then they will not be visible to
+   to the racket program auto grading them.  Please see the
+   [[../../labs/emacs-orgmode/literate-racket.txt::Export][template]] for details on how to export definitions. 
+
+** Naming convention
+
+   - 1. Use the same names of functions as mentioned in the
+     questions.
+
+   - 2. All the questions should be in the same file, and
+     the file is to be called =main.org=.
+      
+** Directory Structure
+
+  - 1. Each student has access to a repository whose name is
+    the roll-number of the student. 
+
+
+  - 2. In your GitLab repository, you *must* follow the
+    directory structure as below:
+
+     #+BEGIN_EXAMPLE
+     -------------------------
+     <roll-no>
+     |
+     `----assignment-solutions
+          |
+          `--- assignment-2
+               |--- main.org
+     ------------------------
+     #+END_EXAMPLE
+
+Tangling your =main.org= should give us a working =main.rkt= file, which will
+be evaluated against the given test cases and additional ones.
+You need to only commit =main.org= file to your repository, not the
+additionally generated files.
+
+** Strict Adherence
+
+If you do not adhere to this directory structure and naming,
+you *will* lose marks. The evaluation of this homework is
+*automated*.  So, please make sure that you don't miss
+hyphens and upper case letters in file, directory and
+function names.  No requests for regrading of your homework
+will be entertained if the directory structure or naming
+convention is not followed!

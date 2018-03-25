@@ -1,0 +1,270 @@
+#+TITLE: Assignment: More with lists
+#+EXCLUDE_TAGS: solution
+#+PROPERTY: session *scheme*
+#+PROPERTY: results output
+
+# ------------------------------
+#  uncomment to tangle solution
+# #+PROPERTY: tangle main.rkt
+
+# uncomment to suppress tangling
+#+PROPERTY: tangle no
+# ------------------------------
+
+#+PROPERTY: exports code
+#+TAGS: boilerplate(b) notes(n) solution(s)
+#+EXCLUDE_TAGS: boilerplate solution noexport
+#+SETUPFILE: ../../org-templates/level-2.org
+
+* Instructions on structuring your solution into =main.org=
+Design Programs for each of the following problems.  Your
+solutions should be in the form of an /org file/ that
+contains the solutions.  The narrative should /describe/, in
+English, your solution and why you think it works.  The
+narrative should be interspersed with code that can then be
+extracted (/tangled/) and run.
+
+Please see the sample [[../../labs/emacs-orgmode/literate-racket.txt][literate programming template]] for
+writing your racket programs in org-mode file.  (you may
+want to copy the template into a file called =main.org=).
+
+
+* Problems
+Design Programs for each of the following problems.
+** Require statements 											:boilerplate:
+#+NAME: test_infra
+#+BEGIN_SRC scheme :session no
+#lang racket
+(require rackunit)
+#+END_SRC
+** Problem1: =split-list=
+*** Problem
+   Given a list of numbers and a number, create a function =split-list= that returns two lists (Lists of lists) such that:
+   - The first list contains numbers from the original list which are less than or equal to the given number.
+   - The second list contains numbers from the original list which are greater than the given number.
+     
+     *NOTE*: The ordering of the numbers in the resultant lists should not change.
+
+*** Solution 							   :solution: 
+#+NAME: split_list_solution
+#+BEGIN_SRC scheme 
+;;; Similar to Quick Sort, with a pivot.
+(define (split-list-caller l1 l2 l pivot)
+      (cond
+        ((empty? l) (list l1 l2))
+        ((<= (first l) pivot) 
+          (split-list-caller (cons (first l) l1) l2 (rest l) pivot))
+        (else
+          (split-list-caller l1 (cons (first l) l2) (rest l) pivot))))
+
+(define (split-list l pivot)
+        (define result (split-list-caller empty empty l pivot))
+        (list (reverse (first result)) (reverse (first (rest result)))))
+
+#+END_SRC
+
+*** Test cases
+#+NAME: split_list_tests
+#+BEGIN_SRC scheme 
+(check-equal? (split-list '() 3) '(() ()) "test 1")
+(check-equal? (split-list '(1 2 3 4) 5) '((1 2 3 4) ()) "test 2")
+(check-equal? (split-list '(3 1 2 6 5 7 5) 5) '((3 1 2 5 5) (6 7)) "test 3")
+(check-equal? (split-list '(3 1 2 6 5 7 5) 0) '(() (3 1 2 6 5 7 5)) "test 4")
+#+END_SRC
+
+
+
+
+** Problem2: =flatten-list=
+*** Problem
+   Given a nested list structure, write a function =flatten-list= which flattens the structure into a single dimensional list.
+
+   *For instance*,
+   #+BEGIN_SRC scheme
+   (flatten-list '(1 (2 3 (4)))) => '(1 2 3 4)
+   #+END_SRC
+   
+*** Solution 							   :solution:
+#+NAME: flatten_list_solution
+#+BEGIN_SRC scheme 
+;;; Getting started with nested lists. Tricky recursion with n dimensional lists. 
+
+(define (merge l1 l2)
+  (cond ((empty? l1) l2)
+    ((empty? l2) l1)
+    (else (cons (first l1) (merge (rest l1) l2)))))
+
+
+(define (flatten-list l)
+  (cond
+    ((empty? l) empty)
+    ((list? (first l)) (merge (flatten-list (first l)) (flatten-list (rest l))))
+    (else
+     (cons (first l) (flatten-list (rest l))))))
+#+END_SRC
+
+*** Test cases
+#+NAME: flatten_list_tests
+#+BEGIN_SRC scheme
+(check-equal? (flatten-list '()) '() "test 1")
+(check-equal? (flatten-list '((1) () (2))) '(1 2) "test 2")
+(check-equal? (flatten-list '((1 2) ())) '(1 2) "test 3")
+(check-equal? (flatten-list '(() (1) (3 4))) '(1 3 4) "test 4")
+(check-equal? (flatten-list '(1 (2 (3 4) 5) 6)) '(1 2 3 4 5 6) "test 5")
+#+END_SRC
+
+
+** Problem3: =map*=
+*** Problem
+   Recall function =list-map= from assignment 2. Using the same, implement a function =map*= which takes a function =op= and a nested list =l= as arguments and applies the function to every element of the list.
+
+   *For instance*,
+   #+BEGIN_SRC scheme
+   (map* even? '(2 (4 3) ())) => '(#t (#t #f) ())
+   #+END_SRC
+   	 
+*** Solution 							   :solution:
+#+NAME: map_curried_solution
+#+BEGIN_SRC scheme 
+  ;;; Extension of the higher order function map on n-D list.
+  (define (map* op l)
+    (cond
+      ((empty? l) '())
+      ((list? (first l)) (cons (map* op (first l)) (map* op (rest l))))
+      (else
+       (cons (op (first l)) (map* op (rest l) )))))
+#+END_SRC
+
+*** Test cases
+#+NAME: map_curried_tests
+#+BEGIN_SRC scheme
+  (check-equal? (map* even? '(2 (4 3) ())) '(#t (#t #f) ()) "test 1")
+  (check-equal? (map* add1 '((1 2) 3 (4 5) (6 7))) '((2 3) 4 (5 6) (7 8)) "test 2")
+  (check-equal? (map* boolean? '(1 #t #f -2 0)) '(#f #t #t #f #f) "test 3")
+#+END_SRC
+    
+
+** Problem4: =reduce*=
+*** Problem
+   Recall =reduce= function from Assignment-2.
+
+   Your task is to write a =reduce*= fucntion which takes a binary function =op=, an initial value =init= and a nested list =l= as input and reduces the list to an answer.
+
+   *For instance*, 
+   #+BEGIN_SRC scheme
+   (reduce* + 0 '(1 (2 3) (4 5))) => 15
+   #+END_SRC
+   
+*** Solution 							   :solution:
+#+NAME: reduce_curried_solution
+#+BEGIN_SRC scheme 
+  ;;; Recursion on nested lists, handled efficiently, to deal with tricky corner cases.
+  (define (reduce* op init l)
+    (letrec ([loop
+              (lambda (buf l)
+                (cond
+                  ((empty? l) buf)                              
+                  ((list? (first l))
+                   (loop (op buf (reduce* op init (first l))) (rest l)))                          
+                  (else
+                   (loop (op buf (first l)) (rest l)))))])                        
+      (loop init l)))
+#+END_SRC
+
+*** Test cases
+#+NAME: reduce_curried_tests
+#+BEGIN_SRC scheme
+  (define (binary-and x y)
+    (and x y))
+
+  (check-equal? (reduce* binary-and #t '((#t #t) (#t #t) #f)) #f "test 1")
+  (check-equal? (reduce* binary-and #t '(#t (#t #t))) #t "test 2")
+  (check-equal? (reduce* + 0 '(1 (2 3) (4 5))) 15 "test 3")
+  (check-equal? (reduce* * 1 '((3 5) (2))) 30 "test 4")
+#+END_SRC
+
+* Tangling Test cases                                              :noexport:
+All the test cases are collected into =tests.rkt=.
+#+BEGIN_SRC scheme :tangle tests.rkt :eval no :noweb yes
+#lang racket
+(require rackunit)
+(require racket/list)
+(require "main.rkt")
+<<split_list_tests>>
+<<flatten_list_tests>>
+<<map_curried_tests>>
+<<reduce_curried_tests>>
+
+#+END_SRC
+
+* Problemsetter's code 						   :noexport:
+
+To tangle out the code, please use =:tangle sols.rkt=
+instead of =:tangle no= below:
+
+#+BEGIN_SRC scheme :tangle no :eval no :noweb yes
+#lang racket
+(require rackunit)
+(provide (all-defined-out))
+<<main_infra>>
+<<_solution>>
+<<split_list_solution>>
+<<flatten_list_solution>>
+<<map_curried_solution>>
+<<reduce_curried_solution>>
+#+END_SRC
+
+
+* Instructions
+** Exporting functions
+
+   Once you've written these programs, you need to export
+   them so that they can be evaluated by us.  If you don't
+   provide the definitions, then they will not be visible to
+   to the racket program auto grading them.  Please see the
+   [[../../labs/emacs-orgmode/literate-racket.txt::Export][template]] for details on how to export definitions. 
+
+** Naming convention
+
+   - 1. Use the same names of functions as mentioned in the
+     questions.
+
+   - 2. All the questions should be in the same file, and
+     the file is to be called =main.org=.
+      
+** Directory Structure
+
+  - 1. Each student has access to a repository whose name is
+    the roll-number of the student. 
+
+
+  - 2. In your GitLab repository, you *must* follow the
+    directory structure as below:
+
+     #+BEGIN_EXAMPLE
+     -------------------------
+     <roll-no>
+     |
+     `----assignment-solutions
+          |
+          `--- assignment-3
+               |--- main.org
+     ------------------------
+     #+END_EXAMPLE
+
+Tangling your =main.org= should give us a working =main.rkt= file, which will
+be evaluated against the given test cases and additional ones.
+You need to only commit =main.org= file to your repository, not the
+additionally generated files.
+
+** Strict Adherence
+
+If you do not adhere to this directory structure and naming,
+you *will* lose marks. The evaluation of this homework is
+*automated*.  So, please make sure that you don't miss
+hyphens and upper case letters in file, directory and
+function names.  No requests for regrading of your homework
+will be entertained if the directory structure or naming
+convention is not followed!
+
+
